@@ -2,6 +2,95 @@ variables:
   solution: 'cs/FASTER.sln'
   RunAzureTests: 'yes'
 
+jobs:
+- job: 'csharpWindows'
+  pool:
+    vmImage: windows-latest
+  displayName: 'C# (Windows)'
+  timeoutInMinutes: 75 
+
+  strategy:
+    maxParallel: 2
+    matrix:
+      AnyCPU-Debug:
+        buildPlatform: 'Any CPU'
+        buildConfiguration: 'Debug'
+      AnyCPU-Release:
+        buildPlatform: 'Any CPU'
+        buildConfiguration: 'Release'
+      x64-Debug:
+        buildPlatform: 'x64'
+        buildConfiguration: 'Debug'
+      x64-Release:
+        buildPlatform: 'x64'
+        buildConfiguration: 'Release'
+
+  steps:
+  - task: NuGetToolInstaller@1
+
+  - task: NuGetCommand@2
+    inputs:
+      restoreSolution: '$(solution)'
+
+  - task: VSBuild@1
+    inputs:
+      solution: '$(solution)'
+      platform: '$(buildPlatform)'
+      configuration: '$(buildConfiguration)'
+
+  - powershell: 'Invoke-WebRequest -OutFile azure-storage-emulator.msi -Uri "https://go.microsoft.com/fwlink/?LinkId=717179&clcid=0x409"'
+    displayName: 'Download Azure Storage Emulator'
+
+  - powershell:  'msiexec /passive /lvx installation.log /a azure-storage-emulator.msi TARGETDIR="C:\storage-emulator"'
+    displayName: 'Install Azure Storage Emulator'
+
+  - script: '"C:\Program Files\Microsoft SQL Server\130\Tools\Binn\SqlLocalDB.exe" create "v13.0" 13.0 -s'
+    displayName: 'Init Test Db'
+
+  - script: '"C:\storage-emulator\root\Microsoft SDKs\Azure\Storage Emulator\AzureStorageEmulator.exe" start'
+    displayName: 'Start Storage Emulator'
+
+  - task: VSTest@2
+    inputs:
+      testAssemblyVer2: |
+       **\$(BuildConfiguration)\net46*\*test.dll
+       **\$(BuildConfiguration)\**\net46*\*test.dll
+       !**\*Microsoft.VisualStudio.TestPlatform*
+       !**\obj\**
+       !**\*TestAdapter.dll
+      platform: '$(buildPlatform)'
+      configuration: '$(buildConfiguration)'
+      otherConsoleOptions: '/Framework:.NETFramework,Version=v4.0'
+
+  - task: VSTest@2
+    inputs:
+      testAssemblyVer2: |
+       **\$(BuildConfiguration)\netcoreapp2*\*test.dll
+       **\$(BuildConfiguration)\**\netcoreapp2*\*test.dll
+       !**\*Microsoft.VisualStudio.TestPlatform*
+       !**\obj\**
+       !**\*TestAdapter.dll
+      platform: '$(buildPlatform)'
+      configuration: '$(buildConfiguration)'
+      otherConsoleOptions: '/Framework:.NETCoreApp,Version=v2.2'
+
+  - task: VSTest@2
+    inputs:
+      testAssemblyVer2: |
+       **\$(BuildConfiguration)\netcoreapp3*\*test.dll
+       **\$(BuildConfiguration)\**\netcoreapp3*\*test.dll
+       !**\*Microsoft.VisualStudio.TestPlatform*
+       !**\obj\**
+       !**\*TestAdapter.dll
+      platform: '$(buildPlatform)'
+      configuration: '$(buildConfiguration)'
+      otherConsoleOptions: '/Framework:.NETCoreApp,Version=v3.1'
+
+  - task: PublishTestResults@2
+    inputs:
+      testRunner: VSTest
+      testResultsFiles: '**/*.trx'
+
 - job: 'cppWindows'
   pool:
     vmImage: vs2017-win2016
@@ -34,13 +123,6 @@ variables:
     workingDirectory: 'cc/build'
     displayName: 'Run Ctest'
 
-  # - script: |
-  #     cp cc/resources/linux/.artifactignore cc/build/.artifactignore
-  #   displayName: 'Prepare to publish artifacts'
-
-  - publish: cc/build
-    artifact: FASTERJNI
-
 - job: 'cppLinux'
   pool:
     vmImage: ubuntu-16.04
@@ -70,17 +152,42 @@ variables:
     workingDirectory: 'cc/build/Debug'
     displayName: 'Run Tests (Debug)'
 
-  - script: |
-      cp cc/resources/linux/.artifactignore cc/build/.artifactignore
-    displayName: 'Prepare to publish artifacts'
-
-  - publish: cc/build
-    artifact: FASTERJNI
-
   #- script: |
   #    CTEST_OUTPUT_ON_FAILURE=1 make test
   #  workingDirectory: 'cc/build/Release'
   #  displayName: 'Run Tests (Release)'
+
+- job: 'csharpLinux'
+  pool:
+    vmImage: ubuntu-16.04
+  displayName: 'C# (Linux)'
+
+  steps:
+  - task: NuGetToolInstaller@1
+    inputs:
+      versionSpec: '5.5.0'
+
+  - task: NuGetCommand@2
+    inputs:
+      restoreSolution: '$(solution)'
+
+  - task: UseDotNet@2
+    inputs:
+      packageType: 'sdk'
+      version: '3.1.201'
+
+  - script: |
+      mono --version
+      msbuild /version
+      msbuild /t:restore $(solution)
+      msbuild /p:Configuration=Release $(solution)
+    displayName: 'Build'
+
+  - task: DotNetCoreCLI@2
+    inputs:
+      command: test
+      projects: '**/test/*.csproj'
+      arguments: '--configuration $(buildConfiguration) --framework netcoreapp3.1'
    
 # - job: 'cppBlobsWindows'
 #   pool:

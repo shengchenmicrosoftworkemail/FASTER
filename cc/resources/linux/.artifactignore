@@ -1,0 +1,7 @@
+**/*
+!Debug/libfaster.a
+!Debug/libfaster_shared.so
+!Debug/libfasterjni.so
+!Release/libfaster.a
+!Release/libfaster_shared.so
+!Release/libfasterjni.so
