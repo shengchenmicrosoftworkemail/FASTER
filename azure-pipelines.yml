@@ -116,6 +116,9 @@ jobs:
     workingDirectory: 'cc/build'
     displayName: 'Run Ctest'
 
+  - publish: cc/build
+    artifact: FASTERJNI_windows
+
 - job: 'cppLinux'
   pool:
     vmImage: ubuntu-16.04
@@ -145,12 +148,12 @@ jobs:
     workingDirectory: 'cc/build/Debug'
     displayName: 'Run Tests (Debug)'
 
-  - script: |
-      cp cc/resources/linux/.artifactignore cc/build/.artifactignore
-    displayName: 'Prepare to publish artifacts'
+  # - script: |
+  #     cp cc/resources/linux/.artifactignore cc/build/.artifactignore
+  #   displayName: 'Prepare to publish artifacts'
 
   - publish: cc/build
-    artifact: FASTERJNI
+    artifact: FASTERJNI_linux
 
   #- script: |
   #    CTEST_OUTPUT_ON_FAILURE=1 make test
