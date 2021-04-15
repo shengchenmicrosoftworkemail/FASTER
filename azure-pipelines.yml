@@ -2,6 +2,7 @@ variables:
   solution: 'cs/FASTER.sln'
   RunAzureTests: 'yes'
 
+jobs:
 - job: 'cppWindows'
   pool:
     vmImage: vs2017-win2016
@@ -34,9 +35,9 @@ variables:
     workingDirectory: 'cc/build'
     displayName: 'Run Ctest'
 
-  # - script: |
-  #     cp cc/resources/linux/.artifactignore cc/build/.artifactignore
-  #   displayName: 'Prepare to publish artifacts'
+  - script: |
+      cp cc/resources/linux/.artifactignore cc/build/.artifactignore
+    displayName: 'Prepare to publish artifacts'
 
   - publish: cc/build
     artifact: FASTERJNI
