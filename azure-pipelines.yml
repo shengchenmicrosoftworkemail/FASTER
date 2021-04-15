@@ -40,7 +40,7 @@ jobs:
     displayName: 'Prepare to publish artifacts'
 
   - publish: cc/build
-    artifact: FASTERJNI
+    artifact: FASTERJNI_cpp_windows
 
 - job: 'cppLinux'
   pool:
@@ -76,7 +76,7 @@ jobs:
     displayName: 'Prepare to publish artifacts'
 
   - publish: cc/build
-    artifact: FASTERJNI
+    artifact: FASTERJNI_cpp_linux
 
   #- script: |
   #    CTEST_OUTPUT_ON_FAILURE=1 make test
